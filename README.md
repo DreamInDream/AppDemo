@@ -1,2 +1,1 @@
-# AppDemo
-first app
+逐渐完善的app
