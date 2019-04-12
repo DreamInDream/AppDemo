@@ -1,4 +1,4 @@
-package com.example.maqiang8.appdemo.mvp.base;
+package com.example.base.mvp.base;
 
 public abstract class BasePresenter<V> implements IPresenter<V> {
     protected V mvpView;
