@@ -28,4 +28,5 @@ dependencies {
     api 'com.jakewharton:butterknife:8.5.1'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
     api project(':base')
+    implementation fileTree(dir: 'libs',includes: ['*.aar','*.jar'])
 }
