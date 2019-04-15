@@ -1,4 +1,4 @@
-package com.example.maqiang8.appdemo;
+package com.example.mq.adddemo;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -17,7 +17,7 @@ public class SecondFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view=View.inflate(getActivity(),R.layout.second_fragment,null);
+        View view=View.inflate(getActivity(), com.example.mq.appdemo.R.layout.second_fragment,null);
         return view;
     }
 }

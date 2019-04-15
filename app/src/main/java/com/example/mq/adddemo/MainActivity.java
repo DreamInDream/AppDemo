@@ -1,20 +1,16 @@
-package com.example.maqiang8.appdemo;
+package com.example.mq.adddemo;
 
 import android.support.v4.app.FragmentTabHost;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TabHost;
 import android.widget.TextView;
 
 import com.example.base.AbsBaseActivity;
-import com.example.maqiang8.appdemo.presenter.MainPresenter;
-import com.example.maqiang8.appdemo.view.IMainView;
+import com.example.mq.adddemo.presenter.MainPresenter;
+import com.example.mq.adddemo.view.IMainView;
+import com.example.mq.appdemo.R;
 
-import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
@@ -36,6 +32,7 @@ public class MainActivity extends AbsBaseActivity implements IMainView {
         mainPresenter=MainPresenter.getInstance();
         mainPresenter.attachView(this);
         initView();
+        initYouMiSDK();
     }
     public void initView(){
         final FragmentTabHost tabHost=findViewById(android.R.id.tabhost);
@@ -88,6 +85,8 @@ public class MainActivity extends AbsBaseActivity implements IMainView {
         TextView tv_title=view.findViewById(R.id.tv_title);
         tv_title.setText(title);
         return view;
+    }
+    public void initYouMiSDK(){
     }
     @Override
     protected void onDestroy() {

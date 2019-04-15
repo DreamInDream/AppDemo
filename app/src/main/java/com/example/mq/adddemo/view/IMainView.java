@@ -1,4 +1,4 @@
-package com.example.maqiang8.appdemo.view;
+package com.example.mq.adddemo.view;
 
 import com.example.base.mvp.base.IView;
 

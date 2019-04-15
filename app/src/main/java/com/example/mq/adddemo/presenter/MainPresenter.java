@@ -1,7 +1,7 @@
-package com.example.maqiang8.appdemo.presenter;
+package com.example.mq.adddemo.presenter;
 
 import com.example.base.mvp.base.BasePresenter;
-import com.example.maqiang8.appdemo.view.IMainView;
+import com.example.mq.adddemo.view.IMainView;
 
 public class MainPresenter extends BasePresenter<IMainView> {
     private final String TAG="MainPressenter";
