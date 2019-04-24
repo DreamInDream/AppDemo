@@ -1,200 +1,263 @@
 package com.example.mq.adddemo;
-
-import android.content.Context;
+import android.Manifest;
+import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.RelativeLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.base.AbsBaseActivity;
-import com.example.mq.adddemo.utils.PermissionHelper;
-import com.example.mq.appdemo.R;
 
-import cdc.sed.yff.AdManager;
-import cdc.sed.yff.nm.cm.ErrorCode;
-import cdc.sed.yff.nm.sp.SplashViewSettings;
-import cdc.sed.yff.nm.sp.SpotListener;
-import cdc.sed.yff.nm.sp.SpotManager;
-import cdc.sed.yff.nm.sp.SpotRequestListener;
+import com.example.mq.adddemo.utils.Constants;
+import com.example.mq.appdemo.R;
+import com.qq.e.ads.splash.SplashAD;
+import com.qq.e.ads.splash.SplashADListener;
+import com.qq.e.comm.util.AdError;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 开屏广告演示窗口
+ * 这是demo工程的入口Activity，在这里会首次调用广点通的SDK。
  *
- * @author Alian Lee
- * @since 2016-11-25
+ * 在调用SDK之前，如果您的App的targetSDKVersion >= 23，那么一定要把"READ_PHONE_STATE"、"WRITE_EXTERNAL_STORAGE"、"ACCESS_FINE_LOCATION"这几个权限申请到，否则SDK将不会工作。
  */
-public class SplashActivity extends AbsBaseActivity {
+public class SplashActivity extends Activity implements SplashADListener {
 
-	Context mContext;
-	private PermissionHelper mPermissionHelper;
-	
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		
-		super.onCreate(savedInstanceState);
-		mContext = this;
-		// 设置全屏
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		// 移除标题栏
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		setContentView(R.layout.activity_splash);
-		
-		// 当系统为6.0以上时，需要申请权限
-		mPermissionHelper = new PermissionHelper(this);
-		mPermissionHelper.setOnApplyPermissionListener(new PermissionHelper.OnApplyPermissionListener() {
-			@Override
-			public void onAfterApplyAllPermission() {
-				Log.i(TAG, "All of requested permissions has been granted, so run app logic.");
-				runApp();
-			}
-		});
-		if (Build.VERSION.SDK_INT < 23) {
-			// 如果系统版本低于23，直接跑应用的逻辑
-			Log.d(TAG, "The api level of system is lower than 23, so run app logic directly.");
-			runApp();
-		} else {
-			// 如果权限全部申请了，那就直接跑应用逻辑
-			if (mPermissionHelper.isAllRequestedPermissionGranted()) {
-				Log.d(TAG, "All of requested permissions has been granted, so run app logic directly.");
-				runApp();
-			} else {
-				// 如果还有权限为申请，而且系统版本大于23，执行申请权限逻辑
-				Log.i(TAG, "Some of requested permissions hasn't been granted, so apply permissions first.");
-				mPermissionHelper.applyPermissions();
-			}
-		}
-	}
-	
-	@Override
-	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		mPermissionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults);
-	}
-	
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
-		mPermissionHelper.onActivityResult(requestCode, resultCode, data);
-	}
-	
-	/**
-	 * 跑应用的逻辑
-	 */
-	private void runApp() {
-		//初始化SDK
-		AdManager.getInstance(mContext).init("b5a7f8ee114870b0","6310583e1eb7307e",true);
-		preloadAd();
-		setupSplashAd(); // 如果需要首次展示开屏，请注释掉本句代码
-	}
-	
-	/**
-	 * 预加载广告
-	 */
-	private void preloadAd() {
-		// 注意：不必每次展示插播广告前都请求，只需在应用启动时请求一次
-		SpotManager.getInstance(mContext).requestSpot(new SpotRequestListener() {
-			@Override
-			public void onRequestSuccess() {
-				Log.e(TAG,"请求插屏广告成功");
-				//				// 应用安装后首次展示开屏会因为本地没有数据而跳过
-				//              // 如果开发者需要在首次也能展示开屏，可以在请求广告成功之前展示应用的logo，请求成功后再加载开屏
-				//				setupSplashAd();
-			}
-			
-			@Override
-			public void onRequestFailed(int errorCode) {
-				Log.e(TAG,"请求插屏广告失败，errorCode: "+errorCode);
-				switch (errorCode) {
-				case ErrorCode.NON_NETWORK:
-					Toast.makeText(mContext,"网络异常",Toast.LENGTH_SHORT).show();
-					break;
-				case ErrorCode.NON_AD:
-					Toast.makeText(mContext,"暂无插屏广告",Toast.LENGTH_SHORT).show();
-					break;
-				default:
-					Toast.makeText(mContext,"请稍后再试",Toast.LENGTH_SHORT).show();
+    private SplashAD splashAD;
+    private ViewGroup container;
+    private TextView skipView;
+    private ImageView splashHolder;
+    private static final String SKIP_TEXT = "点击跳过 %d";
 
-					break;
-				}
-			}
-		});
-	}
-	
-	/**
-	 * 设置开屏广告
-	 */
-	private void setupSplashAd() {
-		// 创建开屏容器
-		final RelativeLayout splashLayout = (RelativeLayout) findViewById(com.example.mq.appdemo.R.id.rl_splash);
-		RelativeLayout.LayoutParams params =
-				new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-		params.addRule(RelativeLayout.ABOVE, com.example.mq.appdemo.R.id.view_divider);
-		
-		// 对开屏进行设置
-		SplashViewSettings splashViewSettings = new SplashViewSettings();
-		//		// 设置是否展示失败自动跳转，默认自动跳转
-		//		splashViewSettings.setAutoJumpToTargetWhenShowFailed(false);
-		// 设置跳转的窗口类
-		splashViewSettings.setTargetClass(MainActivity.class);
-		// 设置开屏的容器
-		splashViewSettings.setSplashViewContainer(splashLayout);
-		
-		// 展示开屏广告
-		SpotManager.getInstance(mContext)
-		                    .showSplash(mContext, splashViewSettings, new SpotListener() {
-			
-			                    @Override
-			                    public void onShowSuccess() {
-									Log.e(TAG,"开屏展示成功");
-			                    }
-			
-			                    @Override
-			                    public void onShowFailed(int errorCode) {
-									Log.e(TAG,"开屏展示失败");
-				                    switch (errorCode) {
-				                    case ErrorCode.NON_NETWORK:
-										Log.e(TAG,"网络异常");
-					                    break;
-				                    case ErrorCode.NON_AD:
-										Log.e(TAG,"暂无开屏广告");
-					                    break;
-				                    case ErrorCode.RESOURCE_NOT_READY:
-										Log.e(TAG,"开屏资源还没准备好");
-					                    break;
-				                    case ErrorCode.SHOW_INTERVAL_LIMITED:
-										Log.e(TAG,"开屏展示间隔限制");
-					                    break;
-				                    case ErrorCode.WIDGET_NOT_IN_VISIBILITY_STATE:
-										Log.e(TAG,"开屏控件处在不可见状态");
-					                    break;
-				                    default:
-										Log.e(TAG,"errorCode: "+ errorCode);
-					                    break;
-				                    }
-			                    }
-			
-			                    @Override
-			                    public void onSpotClosed() {
-									Log.e(TAG,"开屏被关闭");
-			                    }
-			
-			                    @Override
-			                    public void onSpotClicked(boolean isWebPage) {
-									Log.e(TAG,"开屏被点击");
-									Log.e(TAG,"是否是网页广告" + (isWebPage?"是" : "不是"));
-			                    }
-		                    });
-	}
-	
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		// 开屏展示界面的 onDestroy() 回调方法中调用
-		SpotManager.getInstance(mContext).onDestroy();
-	}
+    public boolean canJump = false;
+
+    /**
+     * 为防止无广告时造成视觉上类似于"闪退"的情况，设定无广告时页面跳转根据需要延迟一定时间，demo
+     * 给出的延时逻辑是从拉取广告开始算开屏最少持续多久，仅供参考，开发者可自定义延时逻辑，如果开发者采用demo
+     * 中给出的延时逻辑，也建议开发者考虑自定义minSplashTimeWhenNoAD的值（单位ms）
+     **/
+    private int minSplashTimeWhenNoAD = 2000;
+    /**
+     * 记录拉取广告的时间
+     */
+    private long fetchSplashADTime = 0;
+    private Handler handler = new Handler(Looper.getMainLooper());
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_splash);
+        container = (ViewGroup) this.findViewById(R.id.splash_container);
+        skipView = (TextView) findViewById(R.id.skip_view);
+        splashHolder = (ImageView) findViewById(R.id.splash_holder);
+        boolean needLogo = getIntent().getBooleanExtra("need_logo", true);
+        if (!needLogo) {
+            findViewById(R.id.app_logo).setVisibility(View.GONE);
+        }
+        // 如果targetSDKVersion >= 23，就要申请好权限。如果您的App没有适配到Android6.0（即targetSDKVersion < 23），那么只需要在这里直接调用fetchSplashAD接口。
+        if (Build.VERSION.SDK_INT >= 23) {
+            checkAndRequestPermission();
+        } else {
+            // 如果是Android6.0以下的机器，默认在安装时获得了所有权限，可以直接调用SDK
+            fetchSplashAD(this, container, skipView, Constants.APPID, getPosId(), this, 0);
+        }
+    }
+
+    private String getPosId() {
+        String posId = getIntent().getStringExtra("pos_id");
+        return TextUtils.isEmpty(posId) ? Constants.SplashPosID : posId;
+    }
+
+    /**
+     *
+     * ----------非常重要----------
+     *
+     * Android6.0以上的权限适配简单示例：
+     *
+     * 如果targetSDKVersion >= 23，那么必须要申请到所需要的权限，再调用广点通SDK，否则广点通SDK不会工作。
+     *
+     * Demo代码里是一个基本的权限申请示例，请开发者根据自己的场景合理地编写这部分代码来实现权限申请。
+     * 注意：下面的`checkSelfPermission`和`requestPermissions`方法都是在Android6.0的SDK中增加的API，如果您的App还没有适配到Android6.0以上，则不需要调用这些方法，直接调用广点通SDK即可。
+     */
+    @TargetApi(Build.VERSION_CODES.M)
+    private void checkAndRequestPermission() {
+        List<String> lackedPermission = new ArrayList<String>();
+        if (!(checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED)) {
+            lackedPermission.add(Manifest.permission.READ_PHONE_STATE);
+        }
+
+        if (!(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
+            lackedPermission.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+
+        if (!(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+            lackedPermission.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        // 权限都已经有了，那么直接调用SDK
+        if (lackedPermission.size() == 0) {
+            fetchSplashAD(this, container, skipView, Constants.APPID, getPosId(), this, 0);
+        } else {
+            // 请求所缺少的权限，在onRequestPermissionsResult中再看是否获得权限，如果获得权限就可以调用SDK，否则不要调用SDK。
+            String[] requestPermissions = new String[lackedPermission.size()];
+            lackedPermission.toArray(requestPermissions);
+            requestPermissions(requestPermissions, 1024);
+        }
+    }
+
+    private boolean hasAllPermissionsGranted(int[] grantResults) {
+        for (int grantResult : grantResults) {
+            if (grantResult == PackageManager.PERMISSION_DENIED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1024 && hasAllPermissionsGranted(grantResults)) {
+            fetchSplashAD(this, container, skipView, Constants.APPID, getPosId(), this, 0);
+        } else {
+            // 如果用户没有授权，那么应该说明意图，引导用户去设置里面授权。
+            Toast.makeText(this, "应用缺少必要的权限！请点击\"权限\"，打开所需要的权限。", Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    /**
+     * 拉取开屏广告，开屏广告的构造方法有3种，详细说明请参考开发者文档。
+     *
+     * @param activity        展示广告的activity
+     * @param adContainer     展示广告的大容器
+     * @param skipContainer   自定义的跳过按钮：传入该view给SDK后，SDK会自动给它绑定点击跳过事件。SkipView的样式可以由开发者自由定制，其尺寸限制请参考activity_splash.xml或者接入文档中的说明。
+     * @param appId           应用ID
+     * @param posId           广告位ID
+     * @param adListener      广告状态监听器
+     * @param fetchDelay      拉取广告的超时时长：取值范围[3000, 5000]，设为0表示使用广点通SDK默认的超时时长。
+     */
+    private void fetchSplashAD(Activity activity, ViewGroup adContainer, View skipContainer,
+                               String appId, String posId, SplashADListener adListener, int fetchDelay) {
+        fetchSplashADTime = System.currentTimeMillis();
+        splashAD = new SplashAD(activity, adContainer, skipContainer, appId, posId, adListener, fetchDelay);
+    }
+
+    @Override
+    public void onADPresent() {
+        Log.i("AD_DEMO", "SplashADPresent");
+        splashHolder.setVisibility(View.INVISIBLE); // 广告展示后一定要把预设的开屏图片隐藏起来
+    }
+
+    @Override
+    public void onADClicked() {
+        Log.i("AD_DEMO", "SplashADClicked");
+    }
+
+    /**
+     * 倒计时回调，返回广告还将被展示的剩余时间。
+     * 通过这个接口，开发者可以自行决定是否显示倒计时提示，或者还剩几秒的时候显示倒计时
+     *
+     * @param millisUntilFinished 剩余毫秒数
+     */
+    @Override
+    public void onADTick(long millisUntilFinished) {
+        Log.i("AD_DEMO", "SplashADTick " + millisUntilFinished + "ms");
+        skipView.setText(String.format(SKIP_TEXT, Math.round(millisUntilFinished / 1000f)));
+    }
+
+    @Override
+    public void onADExposure() {
+        Log.i("AD_DEMO", "SplashADExposure");
+    }
+
+    @Override
+    public void onADDismissed() {
+        Log.i("AD_DEMO", "SplashADDismissed");
+        next();
+    }
+
+    @Override
+    public void onNoAD(AdError error) {
+        Log.i(
+                "AD_DEMO",
+                String.format("LoadSplashADFail, eCode=%d, errorMsg=%s", error.getErrorCode(),
+                        error.getErrorMsg()));
+        /**
+         * 为防止无广告时造成视觉上类似于"闪退"的情况，设定无广告时页面跳转根据需要延迟一定时间，demo
+         * 给出的延时逻辑是从拉取广告开始算开屏最少持续多久，仅供参考，开发者可自定义延时逻辑，如果开发者采用demo
+         * 中给出的延时逻辑，也建议开发者考虑自定义minSplashTimeWhenNoAD的值
+         **/
+        long alreadyDelayMills = System.currentTimeMillis() - fetchSplashADTime;//从拉广告开始到onNoAD已经消耗了多少时间
+        long shouldDelayMills = alreadyDelayMills > minSplashTimeWhenNoAD ? 0 : minSplashTimeWhenNoAD
+                - alreadyDelayMills;//为防止加载广告失败后立刻跳离开屏可能造成的视觉上类似于"闪退"的情况，根据设置的minSplashTimeWhenNoAD
+        // 计算出还需要延时多久
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                SplashActivity.this.startActivity(new Intent(SplashActivity.this, MainActivity.class));
+                SplashActivity.this.finish();
+            }
+        }, shouldDelayMills);
+    }
+
+    /**
+     * 设置一个变量来控制当前开屏页面是否可以跳转，当开屏广告为普链类广告时，点击会打开一个广告落地页，此时开发者还不能打开自己的App主页。当从广告落地页返回以后，
+     * 才可以跳转到开发者自己的App主页；当开屏广告是App类广告时只会下载App。
+     */
+    private void next() {
+        if (canJump) {
+            this.startActivity(new Intent(this, MainActivity.class));
+            this.finish();
+        } else {
+            canJump = true;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        canJump = false;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (canJump) {
+            next();
+        }
+        canJump = true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+    }
+
+    /** 开屏页一定要禁止用户对返回按钮的控制，否则将可能导致用户手动退出了App而广告无法正常曝光和计费 */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_HOME) {
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
 }
