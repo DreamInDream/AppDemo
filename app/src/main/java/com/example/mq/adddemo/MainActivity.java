@@ -28,7 +28,7 @@ public class MainActivity extends AbsBaseActivity implements IMainView {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
+
         mainPresenter=MainPresenter.getInstance();
         mainPresenter.attachView(this);
         initView();

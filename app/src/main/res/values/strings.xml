@@ -2,4 +2,6 @@
     <string name="app_name">AppDemo</string>
     <string name="click_to_skip">点击跳过</string>
     <string name="gdtslogan">GDTslogan</string>
+    <string name="appbar_layout_behavior" translatable="false">android.support.design.widget.AppBarLayout$ScrollingViewBehavior</string>
+
 </resources>
