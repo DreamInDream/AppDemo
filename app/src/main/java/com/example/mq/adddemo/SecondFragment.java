@@ -22,4 +22,9 @@ public class SecondFragment extends BaseFragment {
         View view=View.inflate(getActivity(), com.example.mq.appdemo.R.layout.second_fragment,null);
         return view;
     }
+
+    @Override
+    public void initView() {
+
+    }
 }

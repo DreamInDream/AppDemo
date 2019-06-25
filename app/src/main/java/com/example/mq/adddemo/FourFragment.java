@@ -22,4 +22,9 @@ public class FourFragment extends BaseFragment {
         View view=View.inflate(getActivity(), com.example.mq.appdemo.R.layout.four_fragment,null);
         return view;
     }
+
+    @Override
+    public void initView() {
+
+    }
 }
